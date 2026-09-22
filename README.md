@@ -9,8 +9,8 @@ A draft specification and an interactive tool for describing what happens to eve
 
 | Path | What it is |
 |---|---|
-| `src/App.jsx` | The tool — product model, process flow, figures, rating, record, spec |
-| `landing/index.html` | Standalone landing page |
+| `index.html` | Landing page — served at the site root |
+| `app/index.html`, `src/` | The tool — served at `/app/` |
 | `docs/STANDARD.md` | The specification, draft 0.1 |
 | `schema/open-recycle.schema.json` | JSON Schema for records |
 | `examples/fairphone-2.example.json` | Worked example — deliberately incomplete, see §10 of the spec |
@@ -25,7 +25,15 @@ npm run dev       # local dev server
 npm run build     # production build into dist/
 ```
 
-Pushing to `main` deploys to GitHub Pages via `.github/workflows/deploy.yml`.
+Pushing to `main` deploys to GitHub Pages via `.github/workflows/deploy.yml`:
+
+| URL | Serves |
+|---|---|
+| `/` | Landing page |
+| `/app/` | The tool |
+| `/docs/STANDARD.md` | The specification |
+| `/schema/`, `/examples/` | Schema and example records |
+
 Enable it once under **Settings → Pages → Source: GitHub Actions**.
 
 ## How it works

@@ -459,7 +459,7 @@ export default function OpenRecycleApp() {
   return (
     <div className="w-full h-screen flex flex-col" style={{ background: "#faf9f7", color: "#1a1a18", fontFamily: "ui-sans-serif, system-ui, sans-serif", fontSize: 13 }}>
       <div className="flex items-center gap-4 px-4 h-12 border-b border-neutral-300 shrink-0">
-        <span style={{ fontWeight: 600, letterSpacing: "-0.02em" }}>OPEN RECYCLE</span>
+        <a href="../" style={{ fontWeight: 600, letterSpacing: "-0.02em", textDecoration: "none", color: "inherit" }}>OPEN RECYCLE</a>
         <span className="font-mono text-neutral-400 hidden lg:inline" style={{ fontSize: 10 }}>draft 0.1 · research prototype</span>
         <div className="h-5 w-px bg-neutral-300 hidden md:block" />
         <input value={doc.product.name} onChange={(e) => setProduct({ name: e.target.value })}
