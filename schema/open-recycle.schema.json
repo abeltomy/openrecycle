@@ -1,0 +1,289 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://open-recycle.org/schema/0.1/open-recycle.schema.json",
+  "title": "Open Recyclability Record",
+  "description": "Draft 0.1. Research prototype, not an official standard.",
+  "type": "object",
+  "required": ["standard", "version", "conformance", "product", "components", "evidence"],
+  "properties": {
+    "standard": { "const": "Open Recycle" },
+    "version": { "const": "0.1-draft" },
+    "conformance": {
+      "type": "string",
+      "enum": ["L1", "L1-partial", "L2", "L3", "L4", "L5"],
+      "description": "Self-declared level. A record claiming a level it does not meet is non-conformant."
+    },
+    "criticalityList": {
+      "type": "string",
+      "description": "Named list the 'critical' flags are assessed against, e.g. 'EU CRM Act 2023'."
+    },
+
+    "product": {
+      "type": "object",
+      "required": ["id", "category", "totalMass", "architecture"],
+      "properties": {
+        "id": { "type": "string" },
+        "manufacturer": { "type": "string" },
+        "model": { "type": "string" },
+        "category": { "type": "string" },
+        "year": { "type": "integer" },
+        "totalMass": { "$ref": "#/$defs/quantity" },
+        "architecture": { "enum": ["modular", "partially-modular", "integrated"] }
+      }
+    },
+
+    "components": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "mass", "materials"],
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "parentId": { "type": "string" },
+          "mass": { "$ref": "#/$defs/quantity" },
+          "hazard": { "type": "string" },
+          "unmodelledMass": {
+            "$ref": "#/$defs/quantity",
+            "description": "Required once component mass minus sum of material mass exceeds 1%."
+          },
+          "materials": { "type": "array", "items": { "$ref": "#/$defs/materialEntry" } },
+          "disassembly": {
+            "type": "object",
+            "properties": {
+              "sequencePosition": { "type": "integer" },
+              "tool": { "type": "string" },
+              "timeSeconds": { "type": "number" },
+              "automationPotential": { "type": "number", "minimum": 0, "maximum": 1 }
+            }
+          }
+        }
+      }
+    },
+
+    "connections": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["from", "to", "type", "separationClass", "reversible", "destructive"],
+        "properties": {
+          "from": { "type": "string" },
+          "to": { "type": "string" },
+          "type": { "type": "string" },
+          "separationClass": { "$ref": "#/$defs/separationClass" },
+          "reversible": { "type": "boolean" },
+          "destructive": { "type": "boolean" },
+          "tool": { "type": "string" },
+          "fastenerCount": { "type": "integer", "minimum": 0 },
+          "separationTime": { "type": "number", "minimum": 0 },
+          "temperature": { "type": "number" },
+          "chemicalRequired": { "type": "string" },
+          "hazard": { "type": "string" },
+          "automationPotential": { "type": "number", "minimum": 0, "maximum": 1 }
+        }
+      }
+    },
+
+    "routes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "steps"],
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "steps": { "type": "array", "items": { "$ref": "#/$defs/processStep" } },
+          "aggregates": {
+            "type": "object",
+            "description": "Route-level headline figures. Each carries its own evidence and provenance.",
+            "properties": {
+              "metalRecycling": { "$ref": "#/$defs/quantity" },
+              "materialRecycling": { "$ref": "#/$defs/quantity" },
+              "energyRecovery": { "$ref": "#/$defs/quantity" },
+              "recyclingAndRecovery": {
+                "$ref": "#/$defs/quantity",
+                "description": "Must not be published without materialRecycling and energyRecovery shown separately."
+              }
+            }
+          }
+        }
+      }
+    },
+
+    "outcomes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["materialId", "routeId", "initialMass", "recoveredMass", "qualityDistribution", "evidence"],
+        "properties": {
+          "materialId": { "type": "string" },
+          "routeId": { "type": "string" },
+          "initialMass": { "$ref": "#/$defs/quantity" },
+          "recoveredMass": {
+            "$ref": "#/$defs/quantity",
+            "description": "Mass reaching C0-C3 sinks only. Excludes C4 energy recovery."
+          },
+          "recoveryRate": { "type": "number", "minimum": 0, "maximum": 1 },
+          "qualityDistribution": {
+            "type": "object",
+            "description": "Mass in grams per class. C0+C1+C2+C3+C4+C5 must equal initialMass.",
+            "required": ["C0", "C1", "C2", "C3", "C4", "C5"],
+            "additionalProperties": false,
+            "properties": {
+              "C0": { "type": "number", "minimum": 0 },
+              "C1": { "type": "number", "minimum": 0 },
+              "C2": { "type": "number", "minimum": 0 },
+              "C3": { "type": "number", "minimum": 0 },
+              "C4": { "type": "number", "minimum": 0 },
+              "C5": { "type": "number", "minimum": 0 }
+            }
+          },
+          "destination": { "type": "string" },
+          "evidence": { "$ref": "#/$defs/evidenceLevel" },
+          "provenance": { "$ref": "#/$defs/provenance" }
+        }
+      }
+    },
+
+    "indexWeights": {
+      "type": "object",
+      "description": "Required if any circularity index is published. Reference values shown as defaults.",
+      "properties": {
+        "C0": { "type": "number", "default": 1.0 },
+        "C1": { "type": "number", "default": 0.8 },
+        "C2": { "type": "number", "default": 0.45 },
+        "C3": { "type": "number", "default": 0.25 },
+        "C4": { "type": "number", "default": 0.05 },
+        "C5": { "type": "number", "default": 0.0 }
+      }
+    },
+
+    "dataCompleteness": {
+      "type": "object",
+      "description": "Never to be combined with any recovery or circularity figure.",
+      "properties": {
+        "architecture": { "type": "number", "minimum": 0, "maximum": 1 },
+        "massBalance": { "type": "number", "minimum": 0, "maximum": 1 },
+        "composition": { "type": "number", "minimum": 0, "maximum": 1 },
+        "connections": { "type": "number", "minimum": 0, "maximum": 1 },
+        "processData": { "type": "number", "minimum": 0, "maximum": 1 },
+        "industrialValidation": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+
+    "evidence": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "source", "sourceType", "level"],
+        "properties": {
+          "id": { "type": "string" },
+          "source": { "type": "string" },
+          "sourceType": {
+            "enum": ["peer-reviewed", "manufacturer-report", "commissioned-assessment", "industrial-data", "internal-calculation", "none"]
+          },
+          "year": { "type": "integer" },
+          "page": { "type": "string" },
+          "doiOrUrl": { "type": "string" },
+          "level": { "$ref": "#/$defs/evidenceLevel" },
+          "note": { "type": "string" }
+        }
+      }
+    },
+
+    "provenanceRecord": {
+      "type": "object",
+      "required": ["author", "created"],
+      "properties": {
+        "author": { "type": "string" },
+        "organisation": { "type": "string" },
+        "created": { "type": "string", "format": "date" },
+        "modified": { "type": "string", "format": "date" },
+        "affiliationStatement": { "type": "string" }
+      }
+    }
+  },
+
+  "$defs": {
+    "separationClass": {
+      "type": "string",
+      "enum": ["D0", "D1", "D2", "D3", "D4", "D5", "D6"],
+      "description": "D0 automatic, D1 tool-less, D2 hand tool, D3 specialist tool, D4 thermal/chemical, D5 destructive, D6 practically inseparable. Proposed by this specification."
+    },
+    "qualityClass": {
+      "type": "string",
+      "enum": ["C0", "C1", "C2", "C3", "C4", "C5"],
+      "description": "C0 closed loop, C1 high-quality open loop, C2 downcycled, C3 feedstock, C4 energy recovery, C5 dissipative loss. Proposed by this specification."
+    },
+    "evidenceLevel": {
+      "type": "string",
+      "enum": ["E0", "E1", "E2", "E3", "E4", "E5"],
+      "description": "E0 self-declared, E1 manufacturer doc, E2 engineering calculation, E3 process simulation, E4 experimental trial, E5 independently verified industrial data."
+    },
+    "provenance": {
+      "type": "string",
+      "enum": ["published", "measured", "simulated", "estimated", "proposed", "user"]
+    },
+    "quantity": {
+      "type": "object",
+      "required": ["value", "unit"],
+      "properties": {
+        "value": { "type": ["number", "null"] },
+        "unit": { "type": "string" },
+        "evidence": { "$ref": "#/$defs/evidenceLevel" },
+        "provenance": { "$ref": "#/$defs/provenance" },
+        "evidenceRef": { "type": "string" },
+        "status": {
+          "enum": ["declared", "required-missing", "not-applicable"],
+          "description": "A null value must be marked required-missing rather than omitted."
+        },
+        "note": { "type": "string" }
+      }
+    },
+    "materialEntry": {
+      "type": "object",
+      "required": ["materialId", "mass"],
+      "properties": {
+        "materialId": { "type": "string" },
+        "name": { "type": "string" },
+        "mass": { "$ref": "#/$defs/quantity" },
+        "recycledContent": { "type": "number", "minimum": 0, "maximum": 1 },
+        "critical": { "type": "boolean" }
+      }
+    },
+    "processStep": {
+      "type": "object",
+      "required": ["id", "operation", "outputs", "split"],
+      "properties": {
+        "id": { "type": "string" },
+        "operation": { "type": "string" },
+        "inputs": { "type": "array", "items": { "type": "string" } },
+        "outputs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["port"],
+            "properties": {
+              "port": { "type": "string" },
+              "terminal": { "type": "boolean" },
+              "qualityClass": { "$ref": "#/$defs/qualityClass" },
+              "nextStep": { "type": "string" }
+            }
+          }
+        },
+        "split": {
+          "type": "object",
+          "description": "materialId -> { port: fraction }. Fractions per material must sum to <= 1; the remainder is unaccounted and counts as C5.",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": { "type": "number", "minimum": 0, "maximum": 1 }
+          }
+        },
+        "energy": { "$ref": "#/$defs/quantity" },
+        "emissions": { "$ref": "#/$defs/quantity" }
+      }
+    }
+  }
+}

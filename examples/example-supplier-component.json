@@ -1,0 +1,74 @@
+{
+  "$schema": "https://open-recycle.org/schema/0.1/open-recycle.schema.json",
+  "standard": "Open Recycle",
+  "version": "0.1-draft",
+  "recordType": "component",
+
+  "_readme": [
+    "Example of a component record published by a supplier, for testing the import in the app.",
+    "Values are illustrative and belong to no real company or product.",
+    "Import it under Product → Import supplier component. It arrives locked, tagged with the issuer",
+    "and evidence level, and it will pull the whole product record's evidence floor down to E2."
+  ],
+
+  "issuer": {
+    "organisation": "Northvolt-style cell supplier (example)",
+    "published": "2026-04-11",
+    "contact": "materials@example.invalid"
+  },
+
+  "evidence": "E2",
+
+  "component": {
+    "id": "cell-module-42",
+    "name": "Prismatic cell module (supplier)",
+    "mass": { "value": 42.0, "unit": "g" },
+    "separationClass": "D1",
+    "hazard": "Stored energy, thermal runaway risk. Remove before any size reduction.",
+    "disassembly": {
+      "tool": "Hand",
+      "timeSeconds": 12,
+      "automationPotential": 0.8
+    },
+    "materials": [
+      { "materialId": "Li", "mass": { "value": 1.02, "unit": "g" } },
+      { "materialId": "Co", "mass": { "value": 3.6, "unit": "g" } },
+      { "materialId": "Ni", "mass": { "value": 4.1, "unit": "g" } },
+      { "materialId": "Mn", "mass": { "value": 1.4, "unit": "g" } },
+      { "materialId": "C", "mass": { "value": 7.4, "unit": "g" } },
+      { "materialId": "Cu", "mass": { "value": 6.8, "unit": "g" } },
+      { "materialId": "Al", "mass": { "value": 7.9, "unit": "g" } },
+      { "materialId": "POL", "mass": { "value": 4.2, "unit": "g" } },
+      { "materialId": "Fe", "mass": { "value": 1.1, "unit": "g" } },
+      { "materialId": "P", "mass": { "value": 0.6, "unit": "g" } }
+    ]
+  },
+
+  "materialRegistry": {
+    "Li": { "name": "Lithium", "critical": true },
+    "Co": { "name": "Cobalt", "critical": true },
+    "Ni": { "name": "Nickel", "critical": true },
+    "Mn": { "name": "Manganese", "critical": true },
+    "C": { "name": "Graphite", "critical": true },
+    "Cu": { "name": "Copper", "critical": true },
+    "Al": { "name": "Aluminium", "critical": true },
+    "POL": { "name": "Polymers", "critical": false },
+    "Fe": { "name": "Iron", "critical": false },
+    "P": { "name": "Phosphorus (electrolyte salt)", "critical": true }
+  },
+
+  "disclosure": {
+    "level": "element",
+    "note": "Declared at element level only. Cathode formulation ratio, electrolyte composition and separator chemistry are withheld as commercially confidential. No material present above 0.1 g is omitted."
+  },
+
+  "integrity": {
+    "algorithm": "sha256",
+    "value": "PLACEHOLDER-not-a-real-hash-draft-0.1-defines-the-field-not-the-signature-scheme"
+  },
+
+  "provenance": {
+    "relayed": false,
+    "note": "Declared by the issuer named above from internal engineering calculation, not a recycling trial."
+  }
+}

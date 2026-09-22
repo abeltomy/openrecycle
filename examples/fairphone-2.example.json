@@ -1,0 +1,249 @@
+{
+  "$schema": "https://open-recycle.org/schema/0.1/open-recycle.schema.json",
+  "standard": "Open Recycle",
+  "version": "0.1-draft",
+  "conformance": "L1-partial",
+  "criticalityList": "EU Critical Raw Materials Act 2023",
+
+  "_readme": [
+    "Worked example for the Open Recyclability Specification, draft 0.1.",
+    "Fairphone 2 is used as a research reference case because its recycling has been studied across three",
+    "processing routes in published literature. No affiliation with or endorsement by Fairphone.",
+    "",
+    "This record is deliberately incomplete. Element-level composition and element-level recovery are NOT",
+    "filled in, because those datasets are not reproduced here. They appear as status 'required-missing'.",
+    "The only figures carrying real values are the route aggregates in section 'routes', which are published",
+    "and cited. This is the specification doing its job: showing the holes instead of filling them with",
+    "plausible-looking numbers."
+  ],
+
+  "product": {
+    "id": "fairphone-2",
+    "manufacturer": "Fairphone",
+    "model": "Fairphone 2",
+    "category": "Smartphone",
+    "year": 2015,
+    "architecture": "modular",
+    "totalMass": {
+      "value": null,
+      "unit": "g",
+      "status": "required-missing",
+      "evidence": "E0",
+      "provenance": "estimated",
+      "note": "Fill from a citable manufacturer specification. Do not carry over a figure from memory."
+    }
+  },
+
+  "components": [
+    {
+      "id": "display",
+      "name": "Display module",
+      "mass": { "value": null, "unit": "g", "status": "required-missing", "evidence": "E0" },
+      "materials": [
+        { "materialId": "GLS", "name": "Cover and panel glass", "mass": { "value": null, "unit": "g", "status": "required-missing", "evidence": "E0" } },
+        { "materialId": "Al", "mass": { "value": null, "unit": "g", "status": "required-missing", "evidence": "E0" }, "critical": true },
+        { "materialId": "Cu", "mass": { "value": null, "unit": "g", "status": "required-missing", "evidence": "E0" }, "critical": true },
+        { "materialId": "In", "mass": { "value": null, "unit": "g", "status": "required-missing", "evidence": "E0" }, "critical": true }
+      ],
+      "disassembly": { "sequencePosition": 3, "tool": "screwdriver" }
+    },
+    {
+      "id": "battery",
+      "name": "Battery",
+      "hazard": "Stored energy, thermal runaway risk. Must be removed before size reduction.",
+      "mass": { "value": null, "unit": "g", "status": "required-missing", "evidence": "E0" },
+      "materials": [
+        { "materialId": "Li", "mass": { "value": null, "unit": "g", "status": "required-missing", "evidence": "E0" }, "critical": true },
+        { "materialId": "Co", "mass": { "value": null, "unit": "g", "status": "required-missing", "evidence": "E0" }, "critical": true },
+        { "materialId": "Ni", "mass": { "value": null, "unit": "g", "status": "required-missing", "evidence": "E0" }, "critical": true },
+        { "materialId": "C", "name": "Graphite", "mass": { "value": null, "unit": "g", "status": "required-missing", "evidence": "E0" }, "critical": true },
+        { "materialId": "Cu", "mass": { "value": null, "unit": "g", "status": "required-missing", "evidence": "E0" }, "critical": true },
+        { "materialId": "Al", "mass": { "value": null, "unit": "g", "status": "required-missing", "evidence": "E0" }, "critical": true }
+      ],
+      "disassembly": { "sequencePosition": 2, "tool": "hand", "timeSeconds": 8, "automationPotential": 0.8 }
+    },
+    {
+      "id": "mainboard",
+      "name": "Mainboard / PCBA",
+      "mass": { "value": null, "unit": "g", "status": "required-missing", "evidence": "E0" },
+      "materials": [
+        { "materialId": "Cu", "mass": { "value": null, "unit": "g", "status": "required-missing", "evidence": "E0" }, "critical": true },
+        { "materialId": "Au", "mass": { "value": null, "unit": "g", "status": "required-missing", "evidence": "E0" } },
+        { "materialId": "Ag", "mass": { "value": null, "unit": "g", "status": "required-missing", "evidence": "E0" } },
+        { "materialId": "Pd", "mass": { "value": null, "unit": "g", "status": "required-missing", "evidence": "E0" }, "critical": true },
+        { "materialId": "Ta", "mass": { "value": null, "unit": "g", "status": "required-missing", "evidence": "E0" }, "critical": true },
+        { "materialId": "Sn", "mass": { "value": null, "unit": "g", "status": "required-missing", "evidence": "E0" } }
+      ],
+      "disassembly": { "sequencePosition": 4, "tool": "screwdriver" }
+    },
+    {
+      "id": "cover",
+      "name": "Back cover",
+      "mass": { "value": null, "unit": "g", "status": "required-missing", "evidence": "E0" },
+      "materials": [
+        { "materialId": "POL", "name": "Polymer housing", "mass": { "value": null, "unit": "g", "status": "required-missing", "evidence": "E0" } }
+      ],
+      "disassembly": { "sequencePosition": 1, "tool": "hand", "timeSeconds": 6, "automationPotential": 0.9 }
+    }
+  ],
+
+  "connections": [
+    {
+      "from": "cover", "to": "frame", "type": "clip",
+      "separationClass": "D1", "reversible": true, "destructive": false,
+      "tool": "hand", "fastenerCount": 0
+    },
+    {
+      "from": "battery", "to": "frame", "type": "slide-in contact",
+      "separationClass": "D1", "reversible": true, "destructive": false,
+      "tool": "hand", "fastenerCount": 0, "separationTime": 8,
+      "hazard": "stored energy", "automationPotential": 0.8
+    },
+    {
+      "from": "display", "to": "frame", "type": "screw and board-to-board connector",
+      "separationClass": "D2", "reversible": true, "destructive": false,
+      "tool": "screwdriver", "fastenerCount": 4
+    },
+    {
+      "from": "mainboard", "to": "frame", "type": "screw",
+      "separationClass": "D2", "reversible": true, "destructive": false,
+      "tool": "screwdriver", "fastenerCount": 6
+    }
+  ],
+
+  "routes": [
+    {
+      "id": "r1",
+      "name": "Whole-product smelting",
+      "description": "Product enters high-temperature metallurgy intact. A copper carrier collects thermodynamically compatible metals; light metals, lithium and glass report to slag.",
+      "steps": [
+        {
+          "id": "r1-s1", "operation": "High-temperature copper-carrier smelting",
+          "outputs": [
+            { "port": "metal", "terminal": false, "nextStep": "r1-s2" },
+            { "port": "slag", "terminal": true, "qualityClass": "C5" },
+            { "port": "off-gas", "terminal": true, "qualityClass": "C4" }
+          ],
+          "split": {}
+        },
+        {
+          "id": "r1-s2", "operation": "Refining and electrowinning",
+          "outputs": [
+            { "port": "cathode", "terminal": true, "qualityClass": "C0" },
+            { "port": "residue", "terminal": true, "qualityClass": "C5" }
+          ],
+          "split": {}
+        }
+      ],
+      "aggregates": {
+        "metalRecycling": { "value": 0.14, "unit": "fraction of product mass", "evidence": "E4", "provenance": "published", "evidenceRef": "reuter2018", "status": "declared" },
+        "materialRecycling": { "value": 0.25, "unit": "fraction of product mass", "evidence": "E4", "provenance": "published", "evidenceRef": "reuter2018", "status": "declared" },
+        "recyclingAndRecovery": { "value": 0.36, "unit": "fraction of product mass", "evidence": "E4", "provenance": "published", "evidenceRef": "reuter2018", "status": "declared" },
+        "energyRecovery": { "value": null, "unit": "fraction of product mass", "status": "required-missing", "evidence": "E0", "note": "Implied by the difference between recyclingAndRecovery and materialRecycling, but not separately reported in the cited source. Not derived here." }
+      }
+    },
+    {
+      "id": "r2",
+      "name": "Dismantling and selective processing",
+      "description": "Product is opened into modules. Each module is routed to the metallurgical or polymer infrastructure that suits its chemistry.",
+      "steps": [
+        {
+          "id": "r2-s1", "operation": "Manual dismantling",
+          "outputs": [
+            { "port": "battery", "terminal": false, "nextStep": "r2-s2" },
+            { "port": "pcba", "terminal": false, "nextStep": "r2-s3" },
+            { "port": "display", "terminal": false, "nextStep": "r2-s4" },
+            { "port": "housing", "terminal": false, "nextStep": "r2-s5" }
+          ],
+          "split": {}
+        },
+        { "id": "r2-s2", "operation": "Battery metallurgy", "outputs": [{ "port": "product", "terminal": true, "qualityClass": "C0" }, { "port": "slag", "terminal": true, "qualityClass": "C5" }], "split": {} },
+        { "id": "r2-s3", "operation": "Copper and precious metal metallurgy", "outputs": [{ "port": "metal", "terminal": true, "qualityClass": "C0" }, { "port": "slag", "terminal": true, "qualityClass": "C5" }], "split": {} },
+        { "id": "r2-s4", "operation": "Light metal and glass route", "outputs": [{ "port": "ingot", "terminal": true, "qualityClass": "C1" }, { "port": "cullet", "terminal": true, "qualityClass": "C2" }], "split": {} },
+        { "id": "r2-s5", "operation": "Polymer processing", "outputs": [{ "port": "regranulate", "terminal": true, "qualityClass": "C2" }, { "port": "reject", "terminal": true, "qualityClass": "C4" }], "split": {} }
+      ],
+      "aggregates": {
+        "metalRecycling": { "value": 0.19, "unit": "fraction of product mass", "evidence": "E4", "provenance": "published", "evidenceRef": "reuter2018", "status": "declared" },
+        "materialRecycling": { "value": 0.28, "unit": "fraction of product mass", "evidence": "E4", "provenance": "published", "evidenceRef": "reuter2018", "status": "declared" },
+        "recyclingAndRecovery": { "value": 0.31, "unit": "fraction of product mass", "evidence": "E4", "provenance": "published", "evidenceRef": "reuter2018", "status": "declared" }
+      }
+    },
+    {
+      "id": "r3",
+      "name": "Shredding and physical separation",
+      "description": "Battery removed for safety, then size reduction followed by magnetic, eddy-current, density and optical separation before metallurgy.",
+      "steps": [
+        { "id": "r3-s1", "operation": "Battery removal", "outputs": [{ "port": "battery", "terminal": false }, { "port": "rest", "terminal": false, "nextStep": "r3-s2" }], "split": {} },
+        { "id": "r3-s2", "operation": "Shredding", "outputs": [{ "port": "shred", "terminal": false, "nextStep": "r3-s3" }], "split": {} },
+        { "id": "r3-s3", "operation": "Magnetic separation", "outputs": [{ "port": "ferrous", "terminal": false }, { "port": "non-ferrous", "terminal": false }], "split": {} },
+        { "id": "r3-s4", "operation": "Eddy-current separation", "outputs": [{ "port": "conductive", "terminal": false }, { "port": "residue", "terminal": true, "qualityClass": "C5" }], "split": {} },
+        { "id": "r3-s5", "operation": "Density and optical sorting", "outputs": [{ "port": "polymer", "terminal": true, "qualityClass": "C2" }, { "port": "glass", "terminal": true, "qualityClass": "C2" }, { "port": "heavy", "terminal": false }], "split": {} }
+      ],
+      "aggregates": {
+        "metalRecycling": { "value": 0.22, "unit": "fraction of product mass", "evidence": "E4", "provenance": "published", "evidenceRef": "reuter2018", "status": "declared" },
+        "materialRecycling": { "value": 0.30, "unit": "fraction of product mass", "evidence": "E4", "provenance": "published", "evidenceRef": "reuter2018", "status": "declared" },
+        "recyclingAndRecovery": { "value": 0.31, "unit": "fraction of product mass", "evidence": "E4", "provenance": "published", "evidenceRef": "reuter2018", "status": "declared" }
+      }
+    }
+  ],
+
+  "outcomes": [],
+  "_outcomes_note": [
+    "Empty on purpose. Per-element outcomes require element-level composition and element-level recovery,",
+    "neither of which is present in this record. Populating them from estimates and publishing them next to",
+    "the E4 route aggregates above would be exactly the failure this specification exists to prevent.",
+    "Fill 'components[].materials[].mass' from a citable source first, then compute outcomes and mark them",
+    "'simulated' with the model named."
+  ],
+
+  "indexWeights": { "C0": 1.0, "C1": 0.8, "C2": 0.45, "C3": 0.25, "C4": 0.05, "C5": 0.0 },
+
+  "dataCompleteness": {
+    "architecture": 0.85,
+    "massBalance": 0.0,
+    "composition": 0.0,
+    "connections": 0.6,
+    "processData": 0.35,
+    "industrialValidation": 0.0
+  },
+  "_dataCompleteness_note": "Completeness is not recyclability. These two figures are never combined.",
+
+  "evidence": [
+    {
+      "id": "reuter2018",
+      "source": "Reuter, van Schaik & Ballester, Limits of the Circular Economy: Fairphone Modular Design Pushing the Limits",
+      "sourceType": "peer-reviewed",
+      "year": 2018,
+      "level": "E4",
+      "note": "Source of all three sets of route aggregates. The study concluded that the dismantling route appeared the better option once both recovered mass and the range of recovered materials were considered, even though the shredding route produced the highest mass-based rates."
+    },
+    {
+      "id": "fairphone2017",
+      "source": "Fairphone, Fairphone's Report on Recyclability (Fairphone 2)",
+      "sourceType": "manufacturer-report",
+      "year": 2017,
+      "level": "E1"
+    },
+    {
+      "id": "maras2022",
+      "source": "MARAS, Recycling and recovery assessment of the Fairphone 3 based on a modular approach to recycling",
+      "sourceType": "commissioned-assessment",
+      "year": 2022,
+      "level": "E4",
+      "note": "Not used in this record. Relevant to a Fairphone 3 record: reports overall recycling rates roughly between 50 and 60 percent across three modelled cases."
+    },
+    {
+      "id": "none",
+      "source": "No supporting dataset",
+      "sourceType": "none",
+      "level": "E0",
+      "note": "Referenced by every field marked required-missing."
+    }
+  ],
+
+  "provenanceRecord": {
+    "author": "Open Recycle prototype",
+    "created": "2026-09-03",
+    "affiliationStatement": "This record is not produced, reviewed or endorsed by Fairphone. Fairphone 2 is used as a research reference case only."
+  }
+}
