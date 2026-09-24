@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 
 /* ============================================================
    OPEN RECYCLE — web app
@@ -128,6 +128,41 @@ const seedDoc = () => ({
   components: seedComponents(),
   graph: seedGraph(),
 });
+
+/* ---------- blank project ---------- */
+function blankGraph() {
+  uid = 0;
+  const f = { id: nid(), type: "feed", x: 40, y: 200, label: LIB.feed.label, splits: undefined, quality: undefined };
+  return { nodes: [f], edges: [] };
+}
+const blankDoc = () => ({
+  product: { name: "Untitled product", category: "", year: new Date().getFullYear(), architecture: "", evidence: "E0", issuer: "" },
+  elements: {},
+  components: [],
+  graph: blankGraph(),
+});
+
+/* ---------- project files (save/open on the user's own machine) ----------
+   Distinct from exportJSON's published "record": this is the full editable
+   document, round-tripped so work can be closed and resumed later. */
+const PROJECT_KIND = "open-recycle-project";
+const serializeProject = (doc) => JSON.stringify({ kind: PROJECT_KIND, version: 1, savedAt: new Date().toISOString(), doc }, null, 2);
+const parseProject = (text) => {
+  let parsed;
+  try { parsed = JSON.parse(text); } catch { return { ok: false, error: "That file is not valid JSON." }; }
+  const raw = parsed && parsed.kind === PROJECT_KIND && parsed.doc ? parsed.doc : parsed;
+  if (!raw || typeof raw !== "object" || !Array.isArray(raw.components) || !raw.graph || !Array.isArray(raw.graph.nodes) || !Array.isArray(raw.graph.edges)) {
+    return { ok: false, error: "That file doesn't look like an Open Recycle project." };
+  }
+  const blank = blankDoc();
+  const components = raw.components.map((c, i) => ({
+    id: c.id || `c${i}${Date.now().toString(36)}`, name: c.name || "Component", mass: c.mass || 0,
+    sep: SEP[c.sep] ? c.sep : "D2", tool: c.tool || "", time: c.time || 0, hazard: c.hazard || "",
+    comp: c.comp && typeof c.comp === "object" ? c.comp : {}, source: c.source || undefined,
+  }));
+  return { ok: true, doc: { product: { ...blank.product, ...(raw.product || {}) }, elements: raw.elements || {}, components, graph: raw.graph } };
+};
+const supportsFilePicker = typeof window !== "undefined" && "showSaveFilePicker" in window;
 
 /* ---------- solver ---------- */
 function solve(doc) {
@@ -309,16 +344,139 @@ const NAV = [
   { k: "figures", label: "Figures", hint: "Carrier wheel and material fate" },
   { k: "rating", label: "Rating", hint: "Grade and per-element circularity" },
   { k: "record", label: "Record", hint: "Conformance and export" },
+  { k: "examples", label: "Examples", hint: "Bundled sample records to explore" },
   { k: "spec", label: "Specification", hint: "The scales and the rules" },
+];
+
+const EXAMPLE_FILES = [
+  {
+    path: "../examples/fairphone-2.example.json",
+    file: "fairphone-2.example.json",
+    title: "Fairphone 2 — worked example",
+    kind: "record",
+    blurb: "Research reference case built around the Reuter, van Schaik & Ballester (2018) study. Deliberately incomplete: element-level composition and recovery are left as required-missing so the record shows its holes instead of inventing numbers. Only the published route aggregates carry real values.",
+  },
+  {
+    path: "../examples/example-supplier-component.json",
+    file: "example-supplier-component.json",
+    title: "Supplier component record",
+    kind: "component",
+    blurb: "An illustrative component record of the kind a supplier could publish — a prismatic cell module at evidence E2. Use it to see how Product → Import supplier component locks composition to the issuer's declaration and pulls the record's evidence floor down with it.",
+  },
 ];
 
 /* ============================================================ */
 export default function OpenRecycleApp() {
   const [doc, setDoc] = useState(seedDoc);
   const [view, setView] = useState("home");
+  const [fileHandle, setFileHandle] = useState(null);
+  const [fileName, setFileName] = useState(null);
+  const [dirty, setDirty] = useState(false);
+  const [fileMsg, setFileMsg] = useState(null);
+  const savedSnapshot = useRef(JSON.stringify(seedDoc()));
+  const openInputRef = useRef(null);
   const res = useMemo(() => solve(doc), [doc]);
   const conf = useMemo(() => conformance(doc, res), [doc, res]);
   const G = grade(res.totals.index);
+
+  useEffect(() => { setDirty(JSON.stringify(doc) !== savedSnapshot.current); }, [doc]);
+  useEffect(() => {
+    const onLeave = (e) => { if (dirty) { e.preventDefault(); e.returnValue = ""; } };
+    window.addEventListener("beforeunload", onLeave);
+    return () => window.removeEventListener("beforeunload", onLeave);
+  }, [dirty]);
+  useEffect(() => {
+    const onKey = (e) => { if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") { e.preventDefault(); saveProject(); } };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
+
+  const loadDoc = (nextDoc, handle, name) => {
+    setDoc(nextDoc);
+    setFileHandle(handle || null);
+    setFileName(name || null);
+    savedSnapshot.current = JSON.stringify(nextDoc);
+    setDirty(false);
+  };
+
+  const confirmDiscard = (verb) => !dirty || window.confirm(`Discard unsaved changes and ${verb}?`);
+
+  const newProject = () => {
+    if (!confirmDiscard("start a new project")) return;
+    loadDoc(blankDoc(), null, null);
+  };
+
+  const downloadProjectFile = (data) => {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([data], { type: "application/json" }));
+    a.download = `${slug(doc.product.name)}.open-recycle-project.json`;
+    a.click();
+  };
+
+  const saveProject = async (forceNewFile) => {
+    const data = serializeProject(doc);
+    if (supportsFilePicker) {
+      try {
+        let handle = forceNewFile ? null : fileHandle;
+        if (!handle) {
+          handle = await window.showSaveFilePicker({
+            suggestedName: `${slug(doc.product.name)}.open-recycle-project.json`,
+            types: [{ description: "Open Recycle project", accept: { "application/json": [".json"] } }],
+          });
+        }
+        const writable = await handle.createWritable();
+        await writable.write(data);
+        await writable.close();
+        setFileHandle(handle);
+        setFileName(handle.name);
+        savedSnapshot.current = JSON.stringify(doc);
+        setDirty(false);
+        setFileMsg({ ok: true, text: `Saved to ${handle.name}.` });
+      } catch (err) {
+        if (err.name !== "AbortError") setFileMsg({ ok: false, text: `Could not save: ${err.message}` });
+      }
+    } else {
+      downloadProjectFile(data);
+      savedSnapshot.current = JSON.stringify(doc);
+      setDirty(false);
+      setFileMsg({ ok: true, text: "Downloaded as a project file." });
+    }
+  };
+
+  const openProject = async () => {
+    if (!confirmDiscard("open another project")) return;
+    if (supportsFilePicker) {
+      try {
+        const [handle] = await window.showOpenFilePicker({
+          types: [{ description: "Open Recycle project", accept: { "application/json": [".json"] } }],
+        });
+        const file = await handle.getFile();
+        const text = await file.text();
+        const out = parseProject(text);
+        if (!out.ok) { setFileMsg({ ok: false, text: out.error }); return; }
+        loadDoc(out.doc, handle, file.name);
+        setFileMsg({ ok: true, text: `Opened ${file.name}.` });
+      } catch (err) {
+        if (err.name !== "AbortError") setFileMsg({ ok: false, text: `Could not open: ${err.message}` });
+      }
+    } else {
+      openInputRef.current?.click();
+    }
+  };
+
+  const onOpenInputChange = (ev) => {
+    const f = ev.target.files?.[0];
+    ev.target.value = "";
+    if (!f) return;
+    const r = new FileReader();
+    r.onload = () => {
+      const out = parseProject(String(r.result));
+      if (!out.ok) { setFileMsg({ ok: false, text: out.error }); return; }
+      loadDoc(out.doc, null, f.name);
+      setFileMsg({ ok: true, text: `Opened ${f.name}.` });
+    };
+    r.readAsText(f);
+  };
 
   const setProduct = (p) => setDoc((d) => ({ ...d, product: { ...d.product, ...p } }));
   const setComponent = (id, patch) => setDoc((d) => ({ ...d, components: d.components.map((c) => (c.id === id ? { ...c, ...patch } : c)) }));
@@ -419,11 +577,15 @@ export default function OpenRecycleApp() {
 
   const unlinkComponent = (id) => setComponent(id, { source: null });
 
-  const removeElement = (sym) => setDoc((d) => ({
-    ...d,
-    elements: Object.fromEntries(Object.entries(d.elements || {}).filter(([k]) => k !== sym)),
-    components: d.components.map((c) => { const n = { ...c.comp }; delete n[sym]; return { ...c, comp: n }; }),
-  }));
+  const removeElement = (sym) => {
+    const inUse = doc.components.filter((c) => (c.comp[sym] || 0) > 0);
+    if (inUse.length && !window.confirm(`${res.def[sym]?.name || sym} has mass declared in ${inUse.length} component${inUse.length > 1 ? "s" : ""}. Remove it from the registry and clear that composition everywhere?`)) return;
+    setDoc((d) => ({
+      ...d,
+      elements: Object.fromEntries(Object.entries(d.elements || {}).filter(([k]) => k !== sym)),
+      components: d.components.map((c) => { const n = { ...c.comp }; delete n[sym]; return { ...c, comp: n }; }),
+    }));
+  };
 
   const exportJSON = () => {
     const payload = {
@@ -464,6 +626,20 @@ export default function OpenRecycleApp() {
         <div className="h-5 w-px bg-neutral-300 hidden md:block" />
         <input value={doc.product.name} onChange={(e) => setProduct({ name: e.target.value })}
           className="bg-transparent border-b border-transparent hover:border-neutral-300 focus:border-neutral-900 outline-none px-1" style={{ fontSize: 13, minWidth: 140 }} />
+        <div className="h-5 w-px bg-neutral-300 hidden md:block" />
+        <div className="flex items-center gap-1.5">
+          <button onClick={newProject} className="px-2 py-1 border border-neutral-300 hover:border-neutral-900" style={{ fontSize: 11 }}>New</button>
+          <button onClick={openProject} className="px-2 py-1 border border-neutral-300 hover:border-neutral-900" style={{ fontSize: 11 }}>Open…</button>
+          <button onClick={() => saveProject(false)} className="px-2 py-1 border border-neutral-300 hover:border-neutral-900" style={{ fontSize: 11 }}>
+            Save{dirty ? " ●" : ""}
+          </button>
+          <input ref={openInputRef} type="file" accept=".json,application/json" className="hidden" onChange={onOpenInputChange} />
+          {fileName && (
+            <span className="font-mono text-neutral-400 hidden lg:inline" style={{ fontSize: 10 }} title={fileHandle ? "Saves write back to this file" : "Downloads a new copy on Save"}>
+              · {fileName}
+            </span>
+          )}
+        </div>
         <div className="ml-auto flex items-center gap-3">
           <span className="font-mono px-2 py-1 border" style={{ fontSize: 10, borderColor: conf.level ? "#1a1a18" : "#c9c6bf", color: conf.level ? "#1a1a18" : "#9ca3af" }}>{conf.level || "below L1"}</span>
           <span className="flex items-center gap-2">
@@ -473,6 +649,13 @@ export default function OpenRecycleApp() {
           <button onClick={exportJSON} className="px-3 py-1 bg-neutral-900 text-white" style={{ fontSize: 12 }}>Export record</button>
         </div>
       </div>
+      {fileMsg && (
+        <div className="flex items-center gap-3 px-4 py-1.5 border-b border-neutral-300 shrink-0"
+          style={{ background: fileMsg.ok ? "#f1f4f8" : "#fdf2f2", fontSize: 11 }}>
+          <span style={{ flex: 1 }}>{fileMsg.text}</span>
+          <button onClick={() => setFileMsg(null)} className="text-neutral-500" style={{ fontSize: 13, lineHeight: 1 }}>×</button>
+        </div>
+      )}
 
       <div className="flex flex-1 min-h-0">
         <nav className="w-48 border-r border-neutral-300 shrink-0 py-2 flex flex-col">
@@ -490,7 +673,7 @@ export default function OpenRecycleApp() {
             <div className="text-neutral-500 mt-2" style={{ fontSize: 10, lineHeight: 1.4 }}>
               {g1(res.totals.material)} g material of {g1(res.totals.feed)} g
             </div>
-            <button onClick={() => setDoc(seedDoc())} className="mt-3 w-full px-2 py-1 border border-neutral-300" style={{ fontSize: 11 }}>Reset document</button>
+            <button onClick={() => { if (!confirmDiscard("load the demo product")) return; loadDoc(seedDoc(), null, null); }} className="mt-3 w-full px-2 py-1 border border-neutral-300" style={{ fontSize: 11 }}>Reset document</button>
           </div>
         </nav>
 
@@ -501,6 +684,7 @@ export default function OpenRecycleApp() {
           {view === "figures" && <FiguresView doc={doc} res={res} G={G} />}
           {view === "rating" && <RatingView res={res} G={G} />}
           {view === "record" && <RecordView doc={doc} res={res} conf={conf} exportJSON={exportJSON} setProduct={setProduct} />}
+          {view === "examples" && <ExamplesView importComponent={importComponent} go={setView} />}
           {view === "spec" && <SpecView />}
         </div>
       </div>
@@ -852,6 +1036,11 @@ function FlowView({ doc, res, setGraph }) {
         <p className="text-neutral-500 px-1 mt-3" style={{ fontSize: 10, lineHeight: 1.5 }}>
           Click an output port, then a target node, to wire them. Click a wire to remove it.
         </p>
+        <p className="text-neutral-500 px-1 mt-2" style={{ fontSize: 10, lineHeight: 1.5 }}>
+          {showEl === "all"
+            ? "Pick a material above to edit its split mass directly on each node's ports."
+            : `Editing ${showEl} ports directly on the canvas — this sets the split fraction for ${showEl} at that node.`}
+        </p>
       </div>
 
       <div className="flex-1 relative overflow-hidden"
@@ -908,10 +1097,28 @@ function FlowView({ doc, res, setGraph }) {
                   {lib.ports.map((p) => {
                     const out = res.edgeFlow[graph.edges.find((e) => e.from === n.id && e.port === p)?.id];
                     const m = out ? (showEl === "all" ? res.els.reduce((s, k) => s + out[k], 0) : out[showEl]) : null;
+                    const editable = lib.kind === "process" && showEl !== "all" && m != null && !(lib.usesConnections && p === "rest");
                     return (
                       <div key={p} style={{ height: ROW, display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 6, position: "relative" }}>
                         <span style={{ fontSize: 10, color: "#4b5563" }}>{p}</span>
-                        <span className="font-mono" style={{ fontSize: 9, color: m == null ? "#c2410c" : "#9ca3af", minWidth: 32, textAlign: "right" }}>{m == null ? "open" : `${g1(m)} g`}</span>
+                        {editable ? (
+                          <span className="flex items-center gap-0.5">
+                            <input type="number" step="0.01" min="0" value={g1(m)}
+                              onMouseDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}
+                              onChange={(e) => {
+                                const denom = res.nodeIn[n.id][showEl] || 0;
+                                const k = lib.usesConnections ? (res.sepEff[showEl] ?? 1) : 1;
+                                const capacity = denom * k;
+                                const v = Math.max(0, Math.min(capacity, parseFloat(e.target.value) || 0));
+                                const frac = capacity ? v / capacity : 0;
+                                setGraph((g) => ({ ...g, nodes: g.nodes.map((x) => x.id === n.id ? { ...x, splits: { ...x.splits, [showEl]: { ...(x.splits[showEl] || x.splits._), [p]: frac } } } : x) }));
+                              }}
+                              className="w-12 border border-neutral-300 px-0.5 font-mono text-right" style={{ fontSize: 9 }} />
+                            <span className="font-mono text-neutral-400" style={{ fontSize: 9 }}>g</span>
+                          </span>
+                        ) : (
+                          <span className="font-mono" style={{ fontSize: 9, color: m == null ? "#c2410c" : "#9ca3af", minWidth: 32, textAlign: "right" }}>{m == null ? "open" : `${g1(m)} g`}</span>
+                        )}
                         <button onClick={(e) => { e.stopPropagation(); clickPort(n.id, p); }}
                           style={{ position: "absolute", right: -13, width: 10, height: 10, borderRadius: 5, background: pending && pending.node === n.id && pending.port === p ? "#1a1a18" : "#fff", border: "1.5px solid #6b7280", cursor: "crosshair" }} />
                       </div>
@@ -1286,6 +1493,94 @@ function RecordView({ doc, res, conf, exportJSON, setProduct }) {
           Data completeness and recyclability stay separate. This record can reach L4 while grading E, and it can grade
           A while sitting below L1. A high conformance level means the claim is checkable, not that it is good.
         </p>
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================ EXAMPLES */
+function ExamplesView({ importComponent, go }) {
+  const [texts, setTexts] = useState({});
+  const [open, setOpen] = useState(null);
+  const [imp, setImp] = useState(null);
+
+  useEffect(() => {
+    EXAMPLE_FILES.forEach((ex) => {
+      fetch(ex.path).then((r) => (r.ok ? r.text() : Promise.reject(r.status)))
+        .then((t) => setTexts((s) => ({ ...s, [ex.file]: t })))
+        .catch(() => setTexts((s) => ({ ...s, [ex.file]: null })));
+    });
+  }, []);
+
+  const download = (ex) => {
+    const text = texts[ex.file];
+    if (!text) return;
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([text], { type: "application/json" }));
+    a.download = ex.file; a.click();
+  };
+
+  const tryImport = (ex) => {
+    const text = texts[ex.file];
+    if (!text) return;
+    const out = importComponent(text);
+    setImp(out);
+    if (out.ok) go("product");
+  };
+
+  return (
+    <div className="flex-1 overflow-y-auto p-6">
+      <Head>BUNDLED SAMPLES</Head>
+      <h1 style={{ fontSize: 26, fontWeight: 300 }}>Examples</h1>
+      <p className="text-neutral-600 mt-2" style={{ fontSize: 13, lineHeight: 1.6, maxWidth: "46em" }}>
+        Two records shipped with this repository, kept under <code>examples/</code>. Neither is fiction dressed up as
+        data: the worked example marks every unpublished figure as missing rather than inventing one, and the
+        supplier record is explicitly illustrative.
+      </p>
+
+      {imp && (
+        <div className="mt-4 border-l-2 px-3 py-2 flex items-start gap-3"
+          style={{ borderColor: imp.ok ? "#1d3557" : "#991b1b", background: imp.ok ? "#f1f4f8" : "#fdf2f2", maxWidth: "46em" }}>
+          <div className="flex-1" style={{ fontSize: 11, lineHeight: 1.5 }}>
+            {imp.ok ? <>Imported into Product as a new component from <strong>{imp.issuer}</strong>.</> : imp.error}
+          </div>
+          <button onClick={() => setImp(null)} className="text-neutral-500" style={{ fontSize: 14, lineHeight: 1 }}>×</button>
+        </div>
+      )}
+
+      <div className="mt-6 flex flex-col gap-4" style={{ maxWidth: "46em" }}>
+        {EXAMPLE_FILES.map((ex) => {
+          const text = texts[ex.file];
+          const failed = text === null;
+          return (
+            <div key={ex.file} className="border border-neutral-300 bg-white p-4">
+              <div className="flex items-baseline justify-between gap-3 flex-wrap">
+                <div>
+                  <div style={{ fontSize: 15 }}>{ex.title}</div>
+                  <div className="font-mono text-neutral-500" style={{ fontSize: 10 }}>{ex.file}</div>
+                </div>
+                <div className="flex gap-2 shrink-0">
+                  {ex.kind === "component" && (
+                    <button onClick={() => tryImport(ex)} disabled={!text} className="px-2 py-1 bg-neutral-900 text-white disabled:opacity-40" style={{ fontSize: 11 }}>
+                      Import into Product
+                    </button>
+                  )}
+                  <button onClick={() => setOpen(open === ex.file ? null : ex.file)} disabled={!text} className="px-2 py-1 border border-neutral-300 disabled:opacity-40" style={{ fontSize: 11 }}>
+                    {open === ex.file ? "Hide JSON" : "View JSON"}
+                  </button>
+                  <button onClick={() => download(ex)} disabled={!text} className="px-2 py-1 border border-neutral-300 disabled:opacity-40" style={{ fontSize: 11 }}>
+                    Download
+                  </button>
+                </div>
+              </div>
+              <p className="text-neutral-600 mt-2" style={{ fontSize: 12, lineHeight: 1.55 }}>{ex.blurb}</p>
+              {failed && <p className="mt-2" style={{ fontSize: 11, color: "#991b1b" }}>Could not load this file.</p>}
+              {open === ex.file && text && (
+                <pre className="mt-3 p-2 bg-neutral-50 border border-neutral-200 overflow-auto" style={{ fontSize: 10, maxHeight: 360 }}>{text}</pre>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
